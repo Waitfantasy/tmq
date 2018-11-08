@@ -1,0 +1,53 @@
+mq: "nsq"
+
+persistent: "redis"
+
+log:
+  # default: error
+  level: "info|warning|error|debug"
+
+  # console|file|network
+  output:  "console"
+
+  # default: /var/run/log/unicorn
+  filePath: "./"
+
+  # default: unicorn
+  filePrefix: ""
+
+  # default: .log
+  fileSuffix: ""
+
+  # default: false
+  split: false
+
+grpc:
+  addr: "127.0.0.1:5000"
+  enable_tls: false
+  cert_file: ""
+  key_file: ""
+  server_name: ""
+
+http:
+  addr: "127.0.0.1:5001"
+  enableTls: false
+  certFile: ""
+  serverName: ""
+  insecure: false
+
+redis:
+  addr: "127.0.0.1:6379"
+  password: ""
+  db: 0
+
+nsq:
+  addr: ""
+  delay: 0
+  async: true
+
+id_service:
+  addr: "120.55.63.191:6002"
+  enable_tls: false
+  cert_file: ""
+  key_file: ""
+  server_name: ""

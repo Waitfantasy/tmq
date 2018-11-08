@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+message TMQVoid {
+}
+
+message PrepareRequest {
+    string topic = 1;
+    uint32 retry_second = 2;
+    string body = 3;
+}
+
+message PrepareResponse {
+    uint64 id = 1;
+}
+
+message CommitRequest {
+    uint64 id = 1;
+}
+
+message CommitResponse {
+    bool success = 1;
+}
+
+message RollbackRequest {
+    uint64 id = 1;
+}
+
+message RollbackReponse {
+
+}
+
+message ConsumerAck {
+    uint64 id = 1;
+}
+
+service TMQService {
+    // prepare message
+    rpc Prepare (PrepareRequest) returns (PrepareResponse) {
+    }
+
+    // commit message
+    rpc Commit (CommitRequest) returns (CommitResponse) {
+    }
+
+    rpc Rollback (RollbackRequest) returns (RollbackReponse) {
+    }
+
+    // notify mq the message has been consumerd
+    rpc ConsumerNotify (ConsumerAck) returns (TMQVoid) {
+    }
+}
+
