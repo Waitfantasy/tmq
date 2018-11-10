@@ -1,9 +1,13 @@
 package timingwheel
 
-import "container/heap"
+import (
+	"container/heap"
+	"sync"
+	"time"
+)
 
 type item struct {
-	Value  interface{}
+	Slot   interface{}
 	Expire uint64
 	Index  int
 }
@@ -60,22 +64,33 @@ func (pq *timingWheelHeap) Pop() interface{} {
 }
 
 type delayQueue struct {
-	pq *timingWheelHeap
+	mu        sync.Mutex
+	pq        *timingWheelHeap
+	available chan struct{}
 }
 
 func newDelayQueue(size int) *delayQueue {
 	h := newTimingWheelHeap(size)
 	return &delayQueue{
-		pq: &h,
+		pq:        &h,
+		available: make(chan struct{}),
 	}
 }
 
-func (dq *delayQueue) offer()  {
+func (dq *delayQueue) offer(s *slot) {
+	item := &item{Slot: s, Expire: s.expiration}
+	dq.mu.Lock()
+	heap.Push(dq.pq, item)
+	dq.mu.Unlock()
 
+	// 如果是队首元素, 通知线程
+	if (*dq.pq)[0] == item {
+
+	}
 }
 
 // now 表示从当前时间开始等待
-func (dq *delayQueue) peekAndRemove(now uint64) (*item, uint64){
+func (dq *delayQueue) peekAndRemove(now uint64) (*item, uint64) {
 	if dq.pq.Len() == 0 {
 		return nil, 0
 	}
@@ -92,6 +107,20 @@ func (dq *delayQueue) peekAndRemove(now uint64) (*item, uint64){
 
 func (dq *delayQueue) Poll() {
 	for {
+		first, delay := dq.peekAndRemove(ms(time.Now()))
+
+		if first == nil {
+			if delay == 0 {
+				select {
+
+				}
+ 			} else if delay > 0{
+
+			}
+		} else {
+
+		}
+
 		panic("impl me")
 	}
 }
