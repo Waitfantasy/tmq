@@ -54,6 +54,22 @@ func (pq *timingWheelHeap) Push(x interface{}) {
 	//}
 }
 
+func (pq *timingWheelHeap) Peek() *item {
+	if len(*pq) == 0 {
+		return nil
+	}
+
+	return (*pq)[0]
+}
+
+func (pq *timingWheelHeap) PeekAndRemove() *item {
+	if len(*pq) == 0 {
+		return nil
+	}
+
+	return heap.Pop(pq).(*item)
+}
+
 func (pq *timingWheelHeap) Pop() interface{} {
 	tmp := *pq
 	l := len(tmp)
@@ -64,20 +80,24 @@ func (pq *timingWheelHeap) Pop() interface{} {
 }
 
 type delayQueue struct {
-	mu        sync.Mutex
-	pq        *timingWheelHeap
-	available chan struct{}
+	mu         sync.Mutex
+	pq         *timingWheelHeap
+	available  chan struct{}
+	ExpireChan chan *slot
+	ExitChan   chan struct{}
 }
 
 func newDelayQueue(size int) *delayQueue {
 	h := newTimingWheelHeap(size)
 	return &delayQueue{
-		pq:        &h,
-		available: make(chan struct{}),
+		pq:         &h,
+		available:  make(chan struct{}),
+		ExpireChan: make(chan *slot),
+		ExitChan:   make(chan struct{}),
 	}
 }
 
-func (dq *delayQueue) offer(s *slot) {
+func (dq *delayQueue) Offer(s *slot) {
 	item := &item{Slot: s, Expire: s.expiration}
 	dq.mu.Lock()
 	heap.Push(dq.pq, item)
@@ -85,42 +105,39 @@ func (dq *delayQueue) offer(s *slot) {
 
 	// 如果是队首元素, 通知线程
 	if (*dq.pq)[0] == item {
-
+		dq.available <- struct{}{}
 	}
-}
-
-// now 表示从当前时间开始等待
-func (dq *delayQueue) peekAndRemove(now uint64) (*item, uint64) {
-	if dq.pq.Len() == 0 {
-		return nil, 0
-	}
-
-	first := (*dq.pq)[0]
-	// 超期
-	if first.Expire > now {
-		return nil, first.Expire - now
-	}
-
-	first = heap.Pop(dq.pq).(*item)
-	return first, 0
 }
 
 func (dq *delayQueue) Poll() {
 	for {
-		first, delay := dq.peekAndRemove(ms(time.Now()))
+		dq.mu.Lock()
+		first := dq.pq.PeekAndRemove()
+		dq.mu.Unlock()
 
 		if first == nil {
-			if delay == 0 {
-				select {
-
-				}
- 			} else if delay > 0{
-
+			select {
+			case <-dq.available:
+				continue
+			case <-dq.ExitChan:
+				goto EXIT
 			}
 		} else {
-
+			// 通知
+			if delay := first.Expire - ms(time.Now()); delay <= 0 {
+				dq.ExpireChan <- first.Slot.(*slot)
+			} else if delay > 0 {
+				select {
+				case <-dq.available:
+					continue
+				case <-time.After(time.Duration(delay) * time.Microsecond):
+					continue
+				case <-dq.ExitChan:
+					goto EXIT
+				}
+			}
 		}
-
-		panic("impl me")
 	}
+EXIT:
+	return
 }
