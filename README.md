@@ -16,13 +16,12 @@
 
 根据公式:
 
-```math
-        x+_w^uy =
-        \begin{cases}
-        x + y < 2^w  & \text{正常} \\
-        2^w < x + y < 2^{w+1} & \text{溢出}
-        \end{cases}
-```
+x+_w^uy =
+\begin{cases}
+x + y < 2^w  & \text{正常} \\
+2^w < x + y < 2^{w+1} & \text{溢出}
+\end{cases}
+  
 如果当发生溢出时, x + y > 2^w, 此时结果s = x + y - 2^w
 
 假设 y < 2^w, 则 s < x + y - 2^w
